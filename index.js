@@ -3,9 +3,11 @@ const {
   GetCostAndUsageCommand,
 } = require("@aws-sdk/client-cost-explorer");
 const line = require("@line/bot-sdk");
+const crypto = require('crypto');
 
 const client = new line.Client({
   channelAccessToken: process.env.ACCESS_TOKEN,
+  channelSecret: process.env.CHANNEL_SECRET
 });
 const REGION = "ap-northeast-1";
 
@@ -54,6 +56,17 @@ const toYMDString = (dt) => {
 
 exports.handler = async (event) => {
   console.log("event:", event);
+
+  // signature検証
+  const signature = crypto
+    .createHmac('SHA256', client.config.channelSecret)
+    .update(event.body).digest('base64');
+
+  if (event.headers['x-line-signature'] !== signature) {
+    console.log('signature error!');
+    return;
+  }
+
   const event_data = JSON.parse(event.body);
   console.log("event.body:", JSON.stringify(event_data));
   const messageData = event_data.events && event_data.events[0];
